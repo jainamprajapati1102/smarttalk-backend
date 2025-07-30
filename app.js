@@ -11,7 +11,7 @@ connectDB();
 const app = e();
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: "http://51.21.161.74",
     credentials: true,
   })
 );
