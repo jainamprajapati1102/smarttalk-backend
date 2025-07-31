@@ -93,19 +93,14 @@ export const logout = (req, res) => {
 };
 
 export const search_user = async (req, res) => {
-  // console.log(req.body);
-
-  console.log("search_user-->" + req.body.mobile);
   try {
     const { mobile } = req.body;
 
     if (mobile) {
       let keyword = mobile.trim();
-      // const find_user = await userModel.findOne({ mobile });
       const find_user = await userModel.find({
         $or: [{ mobile: { $regex: keyword } }, { name: { $regex: keyword } }],
       });
-      // console.log(find_user);
 
       if (find_user) {
         res.status(200).json({ find_user });

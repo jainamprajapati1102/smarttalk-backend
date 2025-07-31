@@ -5,16 +5,25 @@ import cors from "cors";
 import connectDB from "./db/db_con.js";
 import cookieParser from "cookie-parser";
 import multer from "multer";
-import { configDotenv } from "dotenv";
-configDotenv();
+// import { configDotenv } from "dotenv";
+// configDotenv();
 connectDB();
 const app = e();
-app.use(
-  cors({
-    origin: "http://51.21.161.74",
-    credentials: true,
-  })
-);
+if (process.env.NODE_ENV == "production") {
+  app.use(
+    cors({
+      origin: "http://51.21.161.74",
+      credentials: true,
+    })
+  );
+} else {
+  app.use(
+    cors({
+      origin: "http://localhost:5173",
+      credentials: true,
+    })
+  );
+}
 app.use(e.json());
 // app.use(e.urlencoded({ extended: true }));
 app.use(cookieParser());
