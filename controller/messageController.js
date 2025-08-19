@@ -2,110 +2,66 @@ import jwt from "jsonwebtoken";
 import {
   messageCreateService,
   msg_delete_me_service,
-  selected_user_msg_service,
+  allMessage_service,
 } from "../service/message.service.js";
 import mongoose from "mongoose";
 import messageModel from "../models/message.model.js";
 import { validationResult } from "express-validator";
+import userModel from "../models/user.model.js";
+// import { emitSocketEvent } from "../socket/index.js";
+import { ChatEventEnum } from "../constants.js";
+import chatModel from "../models/chat.model.js";
 
 export const message_create = async (req, res) => {
   try {
-    if (!req.body) {
-      throw new Error("Body is empty");
-    }
-    const { receiver_id, sender_id, msg, media } = req.body;
-    const sender = jwt.verify(sender_id, "sm?>{}+arttal!_&&*k?@s");
+    if (!req.user._id) return res.status(400).send("please loggeding");
+    var { msg, attachments, chatId } = req.body;
 
-    const chat = await messageCreateService({
-      receiver_id,
-      sender_id: sender,
+    let media = null;
+    chatId = new mongoose.Types.ObjectId(chatId);
+    let attachmentData = [];
+    if (req.file) {
+      attachmentData = [
+        {
+          url: req.file.filename,
+          localPath: req.file.path,
+        },
+      ];
+    }
+    var message = await messageCreateService({
+      sender_id: req.user._id,
       msg,
-      media,
+      attachments: attachmentData,
+      chatId,
     });
-    res.status(200).send({ msg: "msg send", chat });
+
+    message = await message.populate("sender_id", "name mobile email");
+    message = await message.populate("chat");
+    message = await userModel.populate(message, {
+      path: "chat.users",
+      select: "name profilePic email",
+    });
+    if (message) {
+      await chatModel.findByIdAndUpdate(chatId, {
+        latest_msg: message,
+      });
+      return res.status(201).send({ msg: "message created", message });
+    }
   } catch (error) {
     console.log(error);
+    res.status(400);
   }
 };
-
-export const selectedUser_msg = async (req, res) => {
+export const allMessage = async (req, res) => {
   try {
-    const { id, login_id } = req.body;
-    let login_ID = jwt.verify(login_id, process.env.JWT_SECRETE);
-    const response = await selected_user_msg_service({ id, login_ID });
-    res.status(200).send({ messages: response });
+    const response = await allMessage_service({
+      chat: req.params.chatId,
+      // sender_id: req.user._id,
+    });
+    return res.status(200).send({ messages: response });
   } catch (error) {
     console.log("err frm selected user msg controller-->", error);
-  }
-};
-
-export const exist_msg = async (req, res) => {
-  try {
-    const { id } = req.body;
-    let decode_user = jwt.verify(id, "sm?>{}+arttal!_&&*k?@s");
-    // const response = await messageModel.find({ receiver_id: decode_user._id });
-    const receiverId = new mongoose.Types.ObjectId(decode_user._id);
-    const response = await messageModel.aggregate([
-      {
-        $match: { receiver_id: receiverId },
-      },
-      {
-        $group: {
-          _id: "$sender_id",
-          msg: { $push: "$$ROOT" },
-          lastMsgTime: { $last: "$createdAt" },
-        },
-      },
-      {
-        $sort: { lastMsgTime: -1 },
-      },
-      {
-        $lookup: {
-          from: "users", // 👈 name of your users collection
-          localField: "_id", // _id here is sender_id (grouped)
-          foreignField: "_id", // in users collection
-          as: "sender_info", // array of matched user docs
-        },
-      },
-      {
-        $unwind: "$sender_info", // flatten the array to object
-      },
-      {
-        $addFields: {
-          unseenCount: {
-            $size: {
-              $filter: {
-                input: "$msg",
-                as: "m",
-                // cond: { $eq: ["$$m.seen", false] },
-                cond: {
-                  $and: [
-                    { $ne: ["$$m.seen", true] },
-                    { $ne: ["$$m.seen", null] },
-                  ],
-                },
-              },
-            },
-          },
-        },
-      },
-      {
-        $project: {
-          _id: 1,
-          msg: 1,
-          lastMsgTime: 1,
-          senderName: "$sender_info.name", // 👈 only include name
-          senderProfilePic: "$sender_info.profilePic", // optional
-          unseenCount: 1,
-        },
-      },
-    ]);
-
-    if (response) {
-      res.status(200).send({ exist: response });
-    }
-  } catch (error) {
-    console.log("err frm exist msg-->", error);
+    return res.status(400);
   }
 };
 
@@ -117,9 +73,9 @@ export const msg_seen = async (req, res) => {
     }
 
     const decode_log_id = jwt.verify(login_id, process.env.JWT_SECRETE);
-    const result = await messageModel.updateMany(
+    await messageModel.updateMany(
       {
-        receiver_id: decode_log_id,
+        receiver_id: decode_log_id._id,
         sender_id: id,
         seen: { $ne: true },
       },
@@ -127,8 +83,17 @@ export const msg_seen = async (req, res) => {
         $set: { seen: true },
       }
     );
-
-    res.status(200).send({ msg: "all msg seen" });
+    const messages = await messageModel
+      .find({
+        $or: [
+          { sender_id: decode_log_id._id, receiver_id: id },
+          { sender_id: id, receiver_id: decode_log_id._id },
+        ],
+        is_delete: false,
+        is_delete_all: false,
+      })
+      .sort({ createdAt: 1 });
+    res.status(200).send({ msg: "all msg seen", data: messages });
   } catch (error) {
     res.status(400).send(error);
   }
@@ -139,13 +104,12 @@ export const msg_delete_me = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       console.log(errors);
-
       return res.status(400).json({ errors: errors.array() });
     }
     const { id, login_id, msg_id } = req.body;
     console.log(req.body);
 
-    const decode_log_id = await jwt.verify(login_id, process.env.JWT_SECRETE);
+    const decode_log_id = jwt.verify(login_id, process.env.JWT_SECRETE);
     console.log("decode_id", decode_log_id);
 
     const response = await msg_delete_me_service({
@@ -155,11 +119,14 @@ export const msg_delete_me = async (req, res) => {
     });
 
     if (response) {
-      
+      // emitSocketEvent(
+      //   req,
+      //   decode_log_id._id.toString(),
+      //   ChatEventEnum.MESSAGE_DELETE_EVENT
+      // );
       res.status(200).send({ msg: "msg was deleted", response });
-    }else{
-      console.log('res not received');
-      
+    } else {
+      console.log("res not received");
     }
   } catch (error) {
     console.log(error);
@@ -167,4 +134,5 @@ export const msg_delete_me = async (req, res) => {
     res.status(400).send(error);
   }
 };
+
 export const msg_delete_all = async (req, res) => {};

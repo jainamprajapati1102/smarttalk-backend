@@ -1,49 +1,74 @@
 import messageModel from "../models/message.model.js";
 
+// export const messageCreateService = async ({
+//   receiver_id,
+//   sender_id,
+//   msg,
+//   attachments,
+// }) => {
+//   try {
+//     if (!receiver_id || !sender_id) {
+//       throw new Error("All Feilds are required");
+//     }
+
+//     const chat = await messageModel.create({
+//       receiver_id,
+//       sender_id,
+//       msg,
+//       attachments,
+//     });
+//     return chat;
+//   } catch (error) {
+//     console.log(error);
+//   }
+// };
+
 export const messageCreateService = async ({
-  receiver_id,
   sender_id,
   msg,
-  media,
+  attachments,
+  chatId,
 }) => {
   try {
-    if (!receiver_id || !sender_id || !msg) {
-      throw new Error("All Feilds are required");
+    if (!sender_id || !chatId) {
+      throw new Error("All fields are required");
     }
 
-    const chat = await messageModel.create({
-      receiver_id,
+    const message = await messageModel.create({
       sender_id,
       msg,
-      media,
+      chat: chatId,
+      attachments,
     });
-    return chat;
+
+    return message;
   } catch (error) {
-    console.log(error);
+    console.error("Error in messageCreateService:", error.message);
+    throw error;
   }
 };
 
-export const selected_user_msg_service = async ({ id, login_ID }) => {
+export const allMessage_service = async ({ chat, sender_id }) => {
   try {
-    if (!id) {
+    if (!chat) {
       throw new Error("Selected user id is required");
     }
 
     const result = await messageModel
       .find({
-        $or: [
-          { sender_id: login_ID, receiver_id: id },
-          { sender_id: id, receiver_id: login_ID },
-        ],
-        is_delete: false,
-        is_delete_all: false,
-        is_deleted_by: { $ne: login_ID },
+        // sender_id: sender_id,
+        chat,
+        // is_delete: false,
+        // is_delete_all: false,
+        // is_deleted_by: { $ne: sender_id },
       })
-      .sort({ createdAt: 1 });
+      .sort({ createdAt: 1 })
+      .populate("sender_id", "name email profilePic")
+      .populate("chat");
     return result;
   } catch (error) {
     console.log("err frm selected user msg fwetch -->", error);
-    return error;
+    throw new Error(error.message);
   }
 };
 

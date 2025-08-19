@@ -3,7 +3,6 @@ import fs from "fs";
 import path, { join, extname } from "path";
 import { fileURLToPath } from "url";
 
-// Equivalent of __filename and __dirname in ES Module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -22,6 +21,7 @@ const allowedMimeTypes = [
   "audio/mpeg",
   "audio/wav",
   "audio/ogg",
+  // Optional: "video/mp4", "video/webm"
 ];
 
 const ensureDirExists = (dir) => {
@@ -32,17 +32,21 @@ const ensureDirExists = (dir) => {
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const typeFolder = file.mimetype.split("/")[0]; // 'image', 'audio', etc.
-    const uploadPath = join(UPLOAD_DIR, typeFolder);
-    ensureDirExists(uploadPath);
-    cb(null, uploadPath);
+    const { chatId } = req.body;
+    console.log("frm file middleware-->", req.body);
+
+    if (!chatId) {
+      return cb(new Error("Chat ID missing"));
+    }
+
+    const userFolderPath = join(UPLOAD_DIR, `users_${chatId}`);
+    ensureDirExists(userFolderPath);
+    cb(null, userFolderPath);
   },
 
   filename: function (req, file, cb) {
     const ext = extname(file.originalname);
-    const uniqueName = `${file.fieldname}-${Date.now()}-${Math.round(
-      Math.random() * 1e9
-    )}${ext}`;
+    const uniqueName = `${Date.now()}_${Math.round(Math.random() * 1e9)}${ext}`;
     cb(null, uniqueName);
   },
 });
@@ -51,16 +55,16 @@ const fileFilter = (req, file, cb) => {
   if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Only image, document, or audio files are allowed!"), false);
+    cb(new Error("Only images, documents, or audio files are allowed!"), false);
   }
 };
 
 const MAX_SIZE = 25 * 1024 * 1024;
 
 const msg_file = multer({
-  storage: storage,
+  storage,
   limits: { fileSize: MAX_SIZE },
-  fileFilter: fileFilter,
+  fileFilter,
 });
 
 export default msg_file;

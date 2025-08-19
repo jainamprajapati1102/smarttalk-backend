@@ -31,6 +31,8 @@ export const signup = async (req, res) => {
 
 export const signin = async (req, res) => {
   try {
+    console.log(req.body);
+
     const { mobile } = req.body;
 
     const errors = validationResult(req);
@@ -52,7 +54,7 @@ export const signin = async (req, res) => {
       res
         .status(200)
         .cookie("token", token, {
-          httpOnly: false,
+          httpOnly: true,
           secure: process.env.NODE_ENV === "production", // true in production
           sameSite: "Lax", // or "Strict"
           maxAge: 24 * 60 * 60 * 1000, // 1 day
@@ -68,19 +70,10 @@ export const signin = async (req, res) => {
 };
 
 // in userController.js
-export const getMe = async (req, res) => {
+export const authCheck = async (req, res) => {
   try {
-    const token = req.cookies.token;
-    // console.log(token);
-
-    if (!token) return res.status(401).json({ msg: "Not Authenticated" });
-
-    const decoded = jwt.verify(token, "sm?>{}+arttal!_&&*k?@s"); //process.env.JWT_SECRET);
-    console.log(decoded._id);
-    if (decoded._id) {
-      const user = await userModel.findById(decoded._id).select("-password");
-      res.json({ user });
-    }
+    const user = await userModel.findById(req.user._id).select("-password");
+    res.json({ user });
   } catch (error) {
     // console.log(error);
     res.status(401).json({ msg: "Invalid or expired token" });
@@ -91,26 +84,30 @@ export const logout = (req, res) => {
   res.clearCookie("token");
   res.status(200).json({ msg: "Logged out" });
 };
-
 export const search_user = async (req, res) => {
   try {
     const { mobile } = req.body;
 
-    if (mobile) {
-      let keyword = mobile.trim();
-      const find_user = await userModel.find({
-        $or: [{ mobile: { $regex: keyword } }, { name: { $regex: keyword } }],
-      });
+    if (!mobile || !mobile.trim()) {
+      return res.status(400).json({ msg: "mobile is not defined" });
+    }
 
-      if (find_user) {
-        res.status(200).json({ find_user });
-      } else {
-        res.status(400).json({ msg: "No results found for " + mobile });
-      }
+    const keyword = mobile.trim();
+    const find_user = await userModel.find({
+      _id: { $ne: req.user._id },
+      $or: [
+        { mobile: { $regex: keyword, $options: "i" } },
+        { name: { $regex: keyword, $options: "i" } },
+      ],
+    });
+
+    if (find_user.length > 0) {
+      res.status(200).json(find_user);
     } else {
-      res.send({ msg: "mobile is not defined" });
+      res.status(404).json({ msg: `No results found for ${mobile}` });
     }
   } catch (error) {
-    console.log(error.message);
+    console.error(error.message);
+    res.status(500).json({ msg: "Server error" });
   }
 };

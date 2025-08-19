@@ -1,12 +1,13 @@
 import e from "express";
 import {
-  getMe,
+  authCheck,
   logout,
   search_user,
   signin,
   signup,
 } from "../controller/userController.js";
 import { body } from "express-validator";
+import { authUser } from "../middleware/user_auth_middleware.js";
 const router = e.Router();
 
 router.post(
@@ -21,7 +22,7 @@ router.post(
 );
 
 router.post("/signin", signin);
-router.post("/logout", logout);
-router.get("/me", getMe);
-router.post("/search_user", search_user);
+router.post("/logout", authUser, logout);
+router.get("/authCheck", authUser, authCheck);
+router.post("/search_user", authUser, search_user);
 export default router;

@@ -6,6 +6,7 @@ const userSchema = mongoose.Schema({
   email: { type: String },
   mobile: { type: String, required: true, unique: true },
   password: { type: String },
+  profilePic: { type: String, default: null },
 });
 
 userSchema.methods.generateToken = async function () {

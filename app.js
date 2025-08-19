@@ -1,12 +1,13 @@
 import e from "express";
 import signupRoute from "./routes/user.routes.js";
 import messageRoute from "./routes/message.routes.js";
+import chatRoute from "./routes/chat.routes.js";
 import cors from "cors";
 import connectDB from "./db/db_con.js";
 import cookieParser from "cookie-parser";
-import multer from "multer";
-// import { configDotenv } from "dotenv";
-// configDotenv();
+import path from "path";
+import { fileURLToPath } from "url";
+
 connectDB();
 const app = e();
 if (process.env.NODE_ENV == "production") {
@@ -25,24 +26,16 @@ if (process.env.NODE_ENV == "production") {
   );
 }
 app.use(e.json());
-// app.use(e.urlencoded({ extended: true }));
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use(e.urlencoded({ extended: true }));
 app.use(cookieParser());
-// app.use(cors);
+app.use("/api/v1/uploads", e.static(path.join(__dirname, "uploads")));
 app.get("/", (req, res) => {
   res.send("Hello From jainam");
 });
-// app.use("/socket.io", socketRoute);
-// app.get('/socket.io/?')z
-app.use("/user", signupRoute);
-app.use("/chat", messageRoute);
-// app.use((err, req, res, next) => {
-//   if (err instanceof multer.MulterError) {
-//     // Multer-specific errors
-//     return res.status(400).json({ error: err.message });
-//   } else if (err) {
-//     // Any other errors (like invalid file type)
-//     return res.status(400).json({ error: err.message });
-//   }
-//   next();
-// });
+app.use("/api/v1/user", signupRoute);
+app.use("/api/v1/message", messageRoute);
+app.use("/api/v1/chat", chatRoute);
 export default app;
