@@ -48,9 +48,10 @@ import { Server } from "socket.io";
 import { message_create, msg_seen } from "./controller/messageController.js";
 import { initializeSocketIO } from "./socket/index.js";
 
-configDotenv();
 if (process.env.NODE_ENV === "production") {
   configDotenv({ path: ".env.production" });
+} else {
+  configDotenv();
 }
 const PORT = process.env.PORT;
 const server = createServer(app);
