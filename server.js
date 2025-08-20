@@ -72,6 +72,6 @@ const io = new Server(server, {
 app.set("io", io);
 initializeSocketIO(io);
 
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server listening on PORT ${PORT}`);
 });
