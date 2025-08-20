@@ -26,15 +26,14 @@ export const signup = async (req, res) => {
     // res.end();
   } catch (error) {
     console.log(error);
+    res.status(400).send(error);
   }
 };
 
 export const signin = async (req, res) => {
   try {
     console.log(req.body);
-
     const { mobile } = req.body;
-
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
