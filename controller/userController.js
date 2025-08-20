@@ -110,3 +110,13 @@ export const search_user = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+
+export const allUser = async (req, res) => {
+  try {
+    const res = await userModel.find();
+    res.status(200).json(res);
+  } catch (error) {
+    console.log(error);
+    res.status(400).send(error);
+  }
+};

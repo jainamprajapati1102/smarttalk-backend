@@ -5,6 +5,7 @@ import {
   search_user,
   signin,
   signup,
+  allUser
 } from "../controller/userController.js";
 import { body } from "express-validator";
 import { authUser } from "../middleware/user_auth_middleware.js";
@@ -25,4 +26,5 @@ router.post("/signin", signin);
 router.post("/logout", authUser, logout);
 router.get("/authCheck", authUser, authCheck);
 router.post("/search_user", authUser, search_user);
+router.get("alluser", allUser);
 export default router;
