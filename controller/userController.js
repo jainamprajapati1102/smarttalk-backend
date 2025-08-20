@@ -113,8 +113,10 @@ export const search_user = async (req, res) => {
 
 export const allUser = async (req, res) => {
   try {
-    const res = await userModel.find();
-    res.status(200).json(res);
+    const results = await userModel.find();
+    console.log(results);
+
+    res.status(200).json(results);
   } catch (error) {
     console.log(error);
     res.status(400).send(error);
