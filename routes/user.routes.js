@@ -26,5 +26,5 @@ router.post("/signin", signin);
 router.post("/logout", authUser, logout);
 router.get("/authCheck", authUser, authCheck);
 router.post("/search_user", authUser, search_user);
-router.get("alluser", allUser);
+router.get("/alluser", allUser);
 export default router;
