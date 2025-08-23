@@ -7,22 +7,25 @@ export const signup = async (req, res) => {
     if (!req.body || Object.keys(req.body).length === 0) {
       return res.status(400).json({ error: "Request body is empty" });
     }
+    // console.log("user bod controller -->", req.body);
 
-    const error = validationResult(req);
+    // const error = validationResult(req);
     const { name, mobile } = req.body;
 
-    if (!error.isEmpty()) {
-      return res.status(400).json({ errors: error.array() });
-    }
-    // const hashPass = await userModel.hashedPassword(password);
+    // if (!error.isEmpty()) {
+    //   return res.status(400).json({ errors: error.array() });
+    // }
+    // // const hashPass = await userModel.hashedPassword(password);
+    let profilePic = req.file ? req.file.filename : null;
+    console.log("after set name->>", profilePic);
     const chqMatch = await userModel.findOne({ mobile });
+
     if (chqMatch) {
       return res.status(300).json({ msg: "Mobile has already register" });
     }
-    const user = await createUser({ name, mobile });
+    const user = await createUser({ name, mobile, profilePic });
     const token = await user.generateToken();
-
-    res.status(200).json({ user, token });
+    res.status(200).json(user);
     // res.end();
   } catch (error) {
     console.log(error);
@@ -80,7 +83,11 @@ export const authCheck = async (req, res) => {
 };
 
 export const logout = (req, res) => {
-  res.clearCookie("token");
+  res.clearCookie("token", {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: process.env.NODE_ENV === "production",
+  });
   res.status(200).json({ msg: "Logged out" });
 };
 export const search_user = async (req, res) => {
@@ -114,11 +121,26 @@ export const search_user = async (req, res) => {
 export const allUser = async (req, res) => {
   try {
     const results = await userModel.find();
-    console.log(results);
-
     res.status(200).json(results);
   } catch (error) {
-    console.log(error);
+    res.status(400).send(error);
+  }
+};
+
+export const update_user_data = async (req, res) => {
+  try {
+    const { profilePic, name, about } = req.body;
+    const response = await userModel.findOneAndUpdate(
+      { _id: req.user._id },
+      { $set: { profilePic: profilePic, name: name, about: about } },
+      { new: true }
+    );
+    if (response) {
+      res.status(200).send({ msg: "update successfully", response });
+    } else {
+      res.status(400).send({ msg: "not update" });
+    }
+  } catch (error) {
     res.status(400).send(error);
   }
 };

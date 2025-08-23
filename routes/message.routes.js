@@ -24,10 +24,10 @@ router.post("/msg_seen", authUser, msg_seen);
 router.post(
   "/msg_delete_me",
   [
-    body("id").notEmpty().withMessage("Sender id not empty"),
-    body("login_id").notEmpty().withMessage("login user id not empty"),
     body("msg_id").notEmpty().withMessage("msg id not empty"),
+    body("chat_id").notEmpty().withMessage("msg id not empty"),
   ],
+  authUser,
   msg_delete_me
 );
 router.post("/msg_delete_all", authUser, msg_delete_all);

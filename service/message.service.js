@@ -1,27 +1,5 @@
+import mongoose from "mongoose";
 import messageModel from "../models/message.model.js";
-
-// export const messageCreateService = async ({
-//   receiver_id,
-//   sender_id,
-//   msg,
-//   attachments,
-// }) => {
-//   try {
-//     if (!receiver_id || !sender_id) {
-//       throw new Error("All Feilds are required");
-//     }
-
-//     const chat = await messageModel.create({
-//       receiver_id,
-//       sender_id,
-//       msg,
-//       attachments,
-//     });
-//     return chat;
-//   } catch (error) {
-//     console.log(error);
-//   }
-// };
 
 export const messageCreateService = async ({
   sender_id,
@@ -53,14 +31,13 @@ export const allMessage_service = async ({ chat, sender_id }) => {
     if (!chat) {
       throw new Error("Selected user id is required");
     }
+    const senderObjectId = new mongoose.Types.ObjectId(sender_id);
 
     const result = await messageModel
       .find({
-        // sender_id: sender_id,
         chat,
-        // is_delete: false,
-        // is_delete_all: false,
-        // is_deleted_by: { $ne: sender_id },
+        is_delete_all: false,
+        $or: [{ is_delete: false }, { is_deleted_by: { $ne: senderObjectId } }],
       })
       .sort({ createdAt: 1 })
       .populate("sender_id", "name email profilePic")
@@ -72,35 +49,46 @@ export const allMessage_service = async ({ chat, sender_id }) => {
   }
 };
 
-export const msg_delete_me_service = async ({ id, login_id, msg_id }) => {
+export const msg_delete_me_service = async ({
+  msg_id,
+  chat_id,
+  is_deleted_by,
+}) => {
   try {
-    console.log(
-      "delete service",
-      "id->",
-      id,
-      "login->",
-      login_id,
-      "msg->",
-      msg_id
-    );
-
-    const delete_msg_me = await messageModel.findOneAndUpdate(
+    const response = await messageModel.findOneAndUpdate(
       {
-        $or: [{ receiver_id: login_id }, { sender_id: login_id }],
         _id: msg_id,
-        is_delete_all: false,
+        chat: chat_id,
       },
       {
-        $addToSet: { is_deleted_by: login_id },
+        $addToSet: { is_delete_by: is_deleted_by },
         $set: { is_delete: true },
       },
       { new: true }
     );
-    console.log(delete_msg_me);
-    return delete_msg_me;
+    console.log(response);
+    return response;
   } catch (error) {
     console.log(error);
+    return error;
+  }
+};
 
+export const msg_delete_all_service = async ({ chat_id, msg_id }) => {
+  try {
+    const response = await messageModel.findOneAndUpdate(
+      {
+        _id: msg_id,
+        chat: chat_id,
+      },
+      {
+        $set: { is_delete_all: true },
+      },
+      { new: true }
+    );
+    return response;
+  } catch (error) {
+    console.log(error);
     return error;
   }
 };
