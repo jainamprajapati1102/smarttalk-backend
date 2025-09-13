@@ -26,7 +26,7 @@ export const messageCreateService = async ({
   }
 };
 
-export const allMessage_service = async ({ chat, sender_id }) => {
+export const allMessage_service = async ({ chat, sender_id, skip, limit }) => {
   try {
     if (!chat) {
       throw new Error("Selected user id is required");
@@ -40,6 +40,8 @@ export const allMessage_service = async ({ chat, sender_id }) => {
         $or: [{ is_delete: false }, { is_deleted_by: { $ne: senderObjectId } }],
       })
       .sort({ createdAt: 1 })
+      .skip(skip)
+      .limit(limit)
       .populate("sender_id", "name email profilePic")
       .populate("chat");
     return result;

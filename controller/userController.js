@@ -107,11 +107,11 @@ export const search_user = async (req, res) => {
       ],
     });
 
-    if (find_user.length > 0) {
-      res.status(200).json(find_user);
-    } else {
-      res.status(404).json({ msg: `No results found for ${mobile}` });
+    if (find_user.length === 0) {
+      return res.status(200).json([]); // return empty array, not 404
     }
+
+    res.status(200).json(find_user);
   } catch (error) {
     console.error(error.message);
     res.status(500).json({ msg: "Server error" });
