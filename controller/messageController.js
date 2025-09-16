@@ -12,24 +12,64 @@ import userModel from "../models/user.model.js";
 // import { emitSocketEvent } from "../socket/index.js";
 import { ChatEventEnum } from "../constants.js";
 import chatModel from "../models/chat.model.js";
+import { getPresignedUrl } from "../config/s3Utils.js";
+import { getPresignedUrlForKey } from "../service/s3Service.js";
+// export const message_create = async (req, res) => {
+//   try {
+//     if (!req.user._id) return res.status(400).send("please loggeding");
+//     var { msg, attachments, chatId } = req.body;
+
+//     let media = null;
+//     chatId = new mongoose.Types.ObjectId(chatId);
+//     let attachmentData = [];
+//     if (req.file) {
+//       attachmentData = [
+//         {
+//           url: req.file.location,
+//           key: req.file.key,
+//         },
+//       ];
+//     }
+//     var message = await messageCreateService({
+//       sender_id: req.user._id,
+//       msg,
+//       attachments: attachmentData,
+//       chatId,
+//     });
+
+//     message = await message.populate("sender_id", "name mobile email");
+//     message = await message.populate("chat");
+//     message = await userModel.populate(message, {
+//       path: "chat.users",
+//       select: "name profilePic email",
+//     });
+//     if (message) {
+//       await chatModel.findByIdAndUpdate(chatId, {
+//         latest_msg: message,
+//       });
+//       return res.status(201).send({ msg: "message created", message });
+//     }
+//   } catch (error) {
+//     console.log(error);
+//     res.status(400);
+//   }
+// };
 
 export const message_create = async (req, res) => {
   try {
-    if (!req.user._id) return res.status(400).send("please loggeding");
-    var { msg, attachments, chatId } = req.body;
+    if (!req.user._id) return res.status(400).send("Please login");
 
-    let media = null;
-    chatId = new mongoose.Types.ObjectId(chatId);
+    const { msg, chatId } = req.body;
+
     let attachmentData = [];
     if (req.file) {
-      attachmentData = [
-        {
-          url: req.file.filename,
-          localPath: req.file.path,
-        },
-      ];
+      attachmentData.push({
+        url: req.file.location, // 🌐 S3 URL
+        key: req.file.key, // 📁 S3 file path (chat_uploads/xxx)
+      });
     }
-    var message = await messageCreateService({
+
+    let message = await messageCreateService({
       sender_id: req.user._id,
       msg,
       attachments: attachmentData,
@@ -42,35 +82,79 @@ export const message_create = async (req, res) => {
       path: "chat.users",
       select: "name profilePic email",
     });
-    if (message) {
-      await chatModel.findByIdAndUpdate(chatId, {
-        latest_msg: message,
-      });
-      return res.status(201).send({ msg: "message created", message });
-    }
+
+    await chatModel.findByIdAndUpdate(chatId, { latest_msg: message });
+
+    return res.status(201).send({ msg: "message created", message });
   } catch (error) {
-    console.log(error);
-    res.status(400);
+    console.error(error);
+    return res.status(500).send({ msg: "Something went wrong" });
   }
 };
+
+// export const allMessage = async (req, res) => {
+//   try {
+//     const skip = parseInt(req.query.skip) || 0;
+//     const limit = parseInt(req.query.limit) || 20;
+
+//     const response = await allMessage_service({
+//       chat: req.params.chatId,
+//       sender_id: req.user._id,
+//       skip,
+//       limit,
+//     });
+//     return res.status(200).send({ messages: response });
+//   } catch (error) {
+//     console.log("err frm selected user msg controller-->", error);
+//     return res.status(400);
+//   }
+// };
+
 export const allMessage = async (req, res) => {
   try {
     const skip = parseInt(req.query.skip) || 0;
     const limit = parseInt(req.query.limit) || 20;
 
-    const response = await allMessage_service({
+    const messages = await allMessage_service({
       chat: req.params.chatId,
       sender_id: req.user._id,
       skip,
       limit,
     });
-    return res.status(200).send({ messages: response });
+
+    const expiresIn = 3600;
+    await Promise.all(
+      messages.map(async (msg) => {
+        console.log("1");
+        if (!msg.attachments || !Array.isArray(msg.attachments)) return;
+        console.log("2");
+        await Promise.all(
+          msg.attachments.map(async (att, idx) => {
+            console.log("3");
+            try {
+              if (att?.key) {
+                console.log("4");
+                const presigned = await getPresignedUrlForKey(att.key, expiresIn);
+                msg.attachments[idx].url = presigned;
+              } else if (!att?.key && att?.url) {
+                return;
+              }
+            } catch (err) {
+              console.error("Presign error for key:", att.key, err || err);
+            }
+          })
+        );
+      })
+    );
+
+    return res.status(200).send({ messages });
   } catch (error) {
     console.log("err frm selected user msg controller-->", error);
-    return res.status(400);
+    return res
+      .status(400)
+      .send({ error: error.message || "Failed to fetch messages" });
   }
 };
-
 export const msg_seen = async (req, res) => {
   try {
     const { chat_id } = req.body;

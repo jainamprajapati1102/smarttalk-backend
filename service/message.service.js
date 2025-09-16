@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import messageModel from "../models/message.model.js";
-
+import { getPresignedUrl } from "../config/s3Utils.js";
 export const messageCreateService = async ({
   sender_id,
   msg,
@@ -44,6 +44,7 @@ export const allMessage_service = async ({ chat, sender_id, skip, limit }) => {
       .limit(limit)
       .populate("sender_id", "name email profilePic")
       .populate("chat");
+
     return result;
   } catch (error) {
     console.log("err frm selected user msg fwetch -->", error);

@@ -12,7 +12,7 @@ const messageSchema = mongoose.Schema(
       type: [
         {
           url: String,
-          localPath: String,
+          key: String,
         },
       ],
       default: [],

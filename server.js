@@ -41,18 +41,17 @@
 //   console.log(`server listing PORT No. ${PORT}`);
 // });
 
-import app from "./app.js";
-import { createServer } from "http";
 import { configDotenv } from "dotenv";
-import { Server } from "socket.io";
-import { message_create, msg_seen } from "./controller/messageController.js";
-import { initializeSocketIO } from "./socket/index.js";
-
 if (process.env.NODE_ENV === "production") {
   configDotenv({ path: ".env.production" });
 } else {
   configDotenv();
 }
+import app from "./app.js";
+import { createServer } from "http";
+import { Server } from "socket.io";
+import { initializeSocketIO } from "./socket/index.js";
+
 const PORT = process.env.PORT;
 const server = createServer(app);
 

@@ -8,7 +8,7 @@ import {
   msg_delete_me,
   msg_delete_all,
 } from "../controller/messageController.js";
-import msg_file from "../middleware/message_file_upload.js";
+import {msg_file} from "../middleware/message_file_upload.js";
 import { authUser } from "../middleware/user_auth_middleware.js";
 const router = e.Router();
 
