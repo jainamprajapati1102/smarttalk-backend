@@ -125,15 +125,15 @@ export const allMessage = async (req, res) => {
     const expiresIn = 3600;
     await Promise.all(
       messages.map(async (msg) => {
-        console.log("1");
+        // console.log("1");
         if (!msg.attachments || !Array.isArray(msg.attachments)) return;
-        console.log("2");
+        // console.log("2");
         await Promise.all(
           msg.attachments.map(async (att, idx) => {
-            console.log("3");
+            // console.log("3");
             try {
               if (att?.key) {
-                console.log("4");
+                // console.log("4");
                 const presigned = await getPresignedUrlForKey(att.key, expiresIn);
                 msg.attachments[idx].url = presigned;
               } else if (!att?.key && att?.url) {
@@ -158,8 +158,7 @@ export const allMessage = async (req, res) => {
 export const msg_seen = async (req, res) => {
   try {
     const { chat_id } = req.body;
-    console.log("frm msg_seen->", chat_id);
-
+    // console.log("frm msg_seen->", chat_id);
     const response = await messageModel.updateMany(
       {
         chat: chat_id,

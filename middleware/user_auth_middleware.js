@@ -14,7 +14,7 @@ export const authUser = (req, res, next) => {
       req.user = decoded;
       next();
     } catch (err) {
-      res.status(401).json({ message: "Invalid token" });
+      res.status(401).json({ message: "Invalid token jainam" });
     }
   } else {
     res.status(404).send("token not found");
