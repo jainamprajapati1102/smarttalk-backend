@@ -13,7 +13,7 @@ const app = e();
 if (process.env.NODE_ENV == "production") {
   app.use(
     cors({
-      origin: "http://16.71.11.227",
+      origin: "https://sanvad.xyz",
       credentials: true,
     })
   );
