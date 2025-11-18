@@ -4,10 +4,23 @@ import userModel from "../models/user.model.js";
 import jwt from "jsonwebtoken";
 export const signup = async (req, res) => {
   try {
+    console.log("--- SIGNUP DEBUG ---");
+    console.log("Headers:", req.headers["content-type"]);
+    console.log("Body keys:", Object.keys(req.body || {}));
+    console.log(
+      "File:",
+      !!req.file,
+      req.file && {
+        fieldname: req.file.fieldname,
+        originalname: req.file.originalname,
+        size: req.file.size,
+      }
+    );
+    console.log("---------------------");
+
     if (!req.body || Object.keys(req.body).length === 0) {
       return res.status(400).json({ error: "Request body is empty" });
     }
-    // console.log("user bod controller -->", req.body);
 
     // const error = validationResult(req);
     const { name, mobile } = req.body;

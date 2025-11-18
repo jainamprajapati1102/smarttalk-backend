@@ -10,7 +10,7 @@ const userSchema = mongoose.Schema({
 });
 
 userSchema.methods.generateToken = async function () {
-  return jwt.sign({ _id: this._id }, "sm?>{}+arttal!_&&*k?@s", {
+  return jwt.sign({ _id: this._id }, process.env.JWT_SECRETE, {
     expiresIn: "24h",
   });
 };
